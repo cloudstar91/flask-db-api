@@ -7,14 +7,17 @@ from flask_login import UserMixin, LoginManager,login_user,logout_user, current_
 # from itsdangerous import URLSafeTimedSerializers
 import os
 import psycopg2
+from flask_cors import CORS
+
+
 
 
 
 app = Flask(__name__)
+CORS(app)
 app.config.from_object(Config)
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 
 
 convention = {
@@ -29,7 +32,7 @@ db = SQLAlchemy(app, metadata=metadata)
 migrate = Migrate(app, db)
 # ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-from src.models.tutor import Tutor
+from src.models.tutor import Tutor, TutorLocation
 from src.models.region import City, Location
 from src.models.subject import Subject
 from src.models.type import Type
@@ -42,9 +45,67 @@ def list():
 
 @app.route('/tutors',methods=['POST','GET'])
 def tutors():
-    tutors=Tutor.query.all()
     
+    location_id = request.args['location']
+    tutors=Tutor.query.join(TutorLocation).filter(TutorLocation.location_id == location_id).all()
     tutors_new=[]
+    location_arr=[]
     for tutor in tutors:
-        tutors_new.append({"id":tutor.id,"name":tutor.name,"email":tutor.email,"phonenumber":tutor.phonenumber,'rating':tutor.rating,'subject':tutor.subject.subject_name})
+        for location in tutor.locations:
+            location_arr.append({"id":location.id})
+        tutors_new.append({"id":tutor.id,"name":tutor.name,"email":tutor.email,"phonenumber":tutor.phonenumber,'subject':tutor.subject.subject_name,'hourly_rate':tutor.hourlyrate,'location':location})
     return jsonify(tutors_new)
+
+@app.route('/login',methods=['POST'])
+def login():
+    if request.method =='POST':
+        data=request.get_json()
+        user=User.query.filter_by(email=data['email']).first()
+        if user and user.check_password(data['password']):
+            return jsonify({'isLogin':True,'current_user':user.username,'message':'welcome back'})
+        else:   
+            return jsonify({'isLogin':False,'message':'wrong'})
+    return redirect("http://localhost:5000")
+
+
+@app.route('/city',methods=['POST','GET'])
+def city():
+    cities=City.query.all()
+    city_arr=[]
+    for city in cities:
+        city_arr.append({"id":city.id,"name":city.city})
+    return jsonify(city_arr)
+
+@app.route('/location',methods=['POST','GET'])
+def location():
+    locations=Location.query.order_by(Location.location).all()
+    
+    location_arr=[]
+    for location in locations:
+        location_arr.append({"id":location.id,"name":location.location,"city_id":location.city.id})
+    return jsonify(location_arr)
+
+
+@app.route('/subject',methods=['POST','GET'])
+def subject():
+    subjects=Subject.query.all()
+    subject_arr=[]
+    for subject in subjects:
+        subject_arr.append({"id":subject.id,  "name":subject.subject_name})
+    return jsonify(subject_arr)
+
+@app.route('/signup',methods=['POST'])
+def signup():
+    if request.method =='POST':
+        data=request.get_json()
+        users=User.query.filter_by(email=data['email']).first()
+        users2=User.query.filter_by(username=data['username']).first()
+        if users or users2:
+            return jsonify({'success':False})
+        else:
+            user=User(username=data['username'],email=data['email'])
+            user.set_password(data['password'])
+            db.session.add(user)
+            db.session.commit()
+            return jsonify({'success':True,'username':user.username})
+    return redirect("http://localhost:5000")

@@ -1,7 +1,7 @@
 from src import db
 from flask_login import UserMixin
 from flask import Flask, render_template, flash, redirect, url_for,request
-
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import requests
 
