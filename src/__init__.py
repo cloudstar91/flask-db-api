@@ -47,14 +47,20 @@ def list():
 def tutors():
     
     location_id = request.args['location']
-    tutors=Tutor.query.join(TutorLocation).filter(TutorLocation.location_id == location_id).all()
-    tutors_new=[]
-    location_arr=[]
-    for tutor in tutors:
-        for location in tutor.locations:
-            location_arr.append({"id":location.id})
-        tutors_new.append({"id":tutor.id,"name":tutor.name,"email":tutor.email,"phonenumber":tutor.phonenumber,'subject':tutor.subject.subject_name,'hourly_rate':tutor.hourlyrate,'location':location})
-    return jsonify(tutors_new)
+    subject_id = request.args['subject']
+    
+    tutors=Tutor.query.join(TutorLocation).filter(TutorLocation.location_id == location_id,Tutor.subject_id==subject_id).all()
+    if len(tutors)>0:
+        tutors_new=[]
+        location_arr=[]
+        for tutor in tutors:
+            for location in tutor.locations:
+                location_arr.append({"id":location.id})
+            tutors_new.append({"success":True,"id":tutor.id,"name":tutor.name,"email":tutor.email,"phonenumber":tutor.phonenumber,'subject':tutor.subject.subject_name,'hourly_rate':tutor.hourlyrate,'location':location_arr})
+        return jsonify(tutors_new)
+    elif len(tutors)==0:
+        return jsonify({"success":False})
+    
 
 @app.route('/login',methods=['POST'])
 def login():
