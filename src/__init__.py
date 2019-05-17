@@ -39,7 +39,7 @@ from src.models.type import Type
 from src.models.user import User
 
 
-@app.route('/',,methods=['POST','GET'])
+@app.route('/',methods=['POST','GET'])
 def list():
     return 'hello' 
 
